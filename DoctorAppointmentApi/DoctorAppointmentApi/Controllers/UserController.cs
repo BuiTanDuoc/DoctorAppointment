@@ -113,7 +113,7 @@ public class UserController : ControllerBase
             return Ok(new ErrorResponse { Message = "Name, phone and address are required" });
         }
 
-        var address = JsonSerializer.Deserialize<Dtos.Common.AddressDto>(request.Address) ?? new Dtos.Common.AddressDto();
+        var address = JsonSerializer.Deserialize<Dtos.Common.AddressDto>(request.Address, JsonDefaults.CaseInsensitive) ?? new Dtos.Common.AddressDto();
 
         user.Name = request.Name;
         user.Phone = request.Phone;

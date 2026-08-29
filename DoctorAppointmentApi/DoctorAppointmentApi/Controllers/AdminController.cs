@@ -83,7 +83,7 @@ public class AdminController : ControllerBase
             return Ok(new ErrorResponse { Message = ex.Message });
         }
 
-        var address = JsonSerializer.Deserialize<Dtos.Common.AddressDto>(request.Address) ?? new Dtos.Common.AddressDto();
+        var address = JsonSerializer.Deserialize<Dtos.Common.AddressDto>(request.Address, JsonDefaults.CaseInsensitive) ?? new Dtos.Common.AddressDto();
 
         var doctor = new Doctor
         {
@@ -141,7 +141,7 @@ public class AdminController : ControllerBase
         Dtos.Common.AddressDto address;
         try
         {
-            address = JsonSerializer.Deserialize<Dtos.Common.AddressDto>(request.Address) ?? new Dtos.Common.AddressDto();
+            address = JsonSerializer.Deserialize<Dtos.Common.AddressDto>(request.Address, JsonDefaults.CaseInsensitive) ?? new Dtos.Common.AddressDto();
         }
         catch (JsonException)
         {
