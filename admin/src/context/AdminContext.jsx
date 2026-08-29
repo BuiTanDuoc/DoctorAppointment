@@ -51,6 +51,27 @@ const AdminContextProvider = (props) => {
         }
     }
 
+    // Function to update a doctor's info (admin-side full edit) using API
+    const updateDoctor = async (formData) => {
+        try {
+
+            const { data } = await axios.post(backendUrl + '/api/admin/update-doctor', formData, { headers: { aToken } })
+            if (data.success) {
+                toast.success(data.message)
+                await getAllDoctors()
+                return true
+            } else {
+                toast.error(data.message)
+                return false
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return false
+        }
+    }
+
 
     // Getting all appointment data from Database using API
     const getAllAppointments = async () => {
@@ -116,6 +137,7 @@ const AdminContextProvider = (props) => {
         doctors,
         getAllDoctors,
         changeAvailability,
+        updateDoctor,
         appointments,
         getAllAppointments,
         getDashData,
