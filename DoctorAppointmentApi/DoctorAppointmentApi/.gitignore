@@ -1,0 +1,8 @@
+bin/
+obj/
+wwwroot/uploads/doctors/*
+wwwroot/uploads/users/*
+!wwwroot/uploads/doctors/.gitkeep
+!wwwroot/uploads/users/.gitkeep
+appsettings.Production.json
+*.user
