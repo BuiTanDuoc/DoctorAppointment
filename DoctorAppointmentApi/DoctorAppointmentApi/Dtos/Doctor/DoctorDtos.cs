@@ -62,6 +62,28 @@ public class UpdateDoctorProfileRequest
     public bool Available { get; set; }
 }
 
+/// <summary>Bound from multipart/form-data posted by the admin's EditDoctor page.
+/// Unlike UpdateDoctorProfileRequest (doctor's own self-service update), this lets
+/// the admin change identity/listing fields too - everything except email/password,
+/// which stay tied to the doctor's own login.</summary>
+public class UpdateDoctorAdminRequest
+{
+    [Required] public string DocId { get; set; } = string.Empty;
+    [Required] public string Name { get; set; } = string.Empty;
+    [Required] public string Speciality { get; set; } = string.Empty;
+    [Required] public string Degree { get; set; } = string.Empty;
+    [Required] public string Experience { get; set; } = string.Empty;
+    [Required] public decimal Fees { get; set; }
+    [Required] public string About { get; set; } = string.Empty;
+
+    /// <summary>JSON string: {"line1":"...","line2":"..."}</summary>
+    [Required] public string Address { get; set; } = string.Empty;
+    public bool Available { get; set; }
+
+    /// <summary>Optional - only sent when the admin picks a new photo.</summary>
+    public IFormFile? Image { get; set; }
+}
+
 public class DoctorDashboardDto
 {
     public decimal Earnings { get; set; }

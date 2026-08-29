@@ -116,6 +116,65 @@ public class AdminController : ControllerBase
         return Ok(new { success = true, doctors = doctors.Select(d => d.ToDto()) });
     }
 
+    // POST /api/admin/update-doctor (multipart/form-data)
+    [HttpPost("update-doctor")]
+    [Authorize(AuthenticationSchemes = AuthConstants.AdminScheme)]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UpdateDoctor([FromForm] UpdateDoctorAdminRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return Ok(new ErrorResponse { Message = "Missing required doctor details" });
+        }
+
+        if (!int.TryParse(request.DocId, out var docId))
+        {
+            return Ok(new ErrorResponse { Message = "Invalid doctor id" });
+        }
+
+        var doctor = await _db.Doctors.FirstOrDefaultAsync(d => d.Id == docId);
+        if (doctor is null)
+        {
+            return Ok(new ErrorResponse { Message = "Doctor not found" });
+        }
+
+        Dtos.Common.AddressDto address;
+        try
+        {
+            address = JsonSerializer.Deserialize<Dtos.Common.AddressDto>(request.Address) ?? new Dtos.Common.AddressDto();
+        }
+        catch (JsonException)
+        {
+            return Ok(new ErrorResponse { Message = "Invalid address format" });
+        }
+
+        if (request.Image is not null)
+        {
+            try
+            {
+                doctor.Image = await _fileStorage.SaveAsync(request.Image, "doctors");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Ok(new ErrorResponse { Message = ex.Message });
+            }
+        }
+
+        doctor.Name = request.Name;
+        doctor.Speciality = request.Speciality;
+        doctor.Degree = request.Degree;
+        doctor.Experience = request.Experience;
+        doctor.Fees = request.Fees;
+        doctor.About = request.About;
+        doctor.AddressLine1 = address.Line1;
+        doctor.AddressLine2 = address.Line2;
+        doctor.Available = request.Available;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new { success = true, message = "Doctor updated", doctor = doctor.ToDto() });
+    }
+
     // POST /api/admin/change-availability
     [HttpPost("change-availability")]
     [Authorize(AuthenticationSchemes = AuthConstants.AdminScheme)]
