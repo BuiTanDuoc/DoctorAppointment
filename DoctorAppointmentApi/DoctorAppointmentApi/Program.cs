@@ -3,6 +3,7 @@ using DoctorAppointmentApi.Data;
 using DoctorAppointmentApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -48,6 +49,13 @@ var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key
 
 void ConfigureCommonValidation(JwtBearerOptions options, string expectedRole, string headerName)
 {
+    // Without this, JwtSecurityTokenHandler silently renames the "role" claim to
+    // the long ClaimTypes.Role URI (and "sub" to ClaimTypes.NameIdentifier, etc.)
+    // when validating the token. That broke the OnTokenValidated role check below,
+    // which looks for the literal "role" claim - so every request came back 401
+    // even with a perfectly valid token.
+    options.MapInboundClaims = false;
+
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -111,5 +119,33 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// ---------- Seed a default admin row if the Admins table is empty ----------
+// Uses Admin:Email / Admin:Password from config purely as the seed values -
+// once a row exists in the database, config is no longer consulted for login.
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasherService>();
+    var adminSettings = scope.ServiceProvider.GetRequiredService<IOptions<AdminSettings>>().Value;
+
+    if (!await db.Admins.AnyAsync())
+    {
+        if (string.IsNullOrWhiteSpace(adminSettings.Email) || string.IsNullOrWhiteSpace(adminSettings.Password))
+        {
+            throw new InvalidOperationException(
+                "No Admin exists yet and Admin:Email/Admin:Password are not set in configuration to seed one.");
+        }
+
+        db.Admins.Add(new DoctorAppointmentApi.Entities.Admin
+        {
+            Name = "Admin",
+            Email = adminSettings.Email,
+            PasswordHash = hasher.Hash(adminSettings.Password)
+        });
+
+        await db.SaveChangesAsync();
+    }
+}
 
 app.Run();

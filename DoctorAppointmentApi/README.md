@@ -35,9 +35,11 @@ environment variables for anything sensitive):
 
 - `ConnectionStrings:DefaultConnection` — your SQL Server instance
 - `Jwt:Key` — replace with a long random secret (32+ chars)
-- `Admin:Email` / `Admin:Password` — the admin login credentials
-  (there's no Admin table; the admin panel authenticates against these
-  two config values, same as the original app's `.env`-based admin login)
+- `Admin:Email` / `Admin:Password` — **seed values only**. On first run, if the
+  `Admins` table is empty, a row is created from these two config values
+  (password is hashed, not stored in plain text). After that, admin login is
+  validated against the database — this config is no longer consulted, so
+  changing it later has no effect unless you delete the row.
 - `Payments:FrontendUrl` — should match wherever the patient app runs
   (`http://localhost:5173` by default)
 - `Cors:AllowedOrigins` — already set to `5173` (frontend) and `5174` (admin),
@@ -52,6 +54,10 @@ dotnet restore
 dotnet ef migrations add InitialCreate
 dotnet ef database update
 ```
+
+> If you already ran a migration before the `Admin` table was added, run
+> `dotnet ef migrations add AddAdminTable` and `dotnet ef database update`
+> again instead of recreating `InitialCreate`.
 
 ## 3. Run
 

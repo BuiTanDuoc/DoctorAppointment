@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.Json;
 using DoctorAppointmentApi.Data;
 using DoctorAppointmentApi.Dtos.Admin;
@@ -8,7 +9,6 @@ using DoctorAppointmentApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace DoctorAppointmentApi.Controllers;
 
@@ -20,33 +20,33 @@ public class AdminController : ControllerBase
     private readonly IJwtService _jwtService;
     private readonly IPasswordHasherService _passwordHasher;
     private readonly IFileStorageService _fileStorage;
-    private readonly AdminSettings _adminSettings;
 
     public AdminController(
         ApplicationDbContext db,
         IJwtService jwtService,
         IPasswordHasherService passwordHasher,
-        IFileStorageService fileStorage,
-        IOptions<AdminSettings> adminSettings)
+        IFileStorageService fileStorage)
     {
         _db = db;
         _jwtService = jwtService;
         _passwordHasher = passwordHasher;
         _fileStorage = fileStorage;
-        _adminSettings = adminSettings.Value;
     }
+
+    private int CurrentAdminId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)
+        ?? User.Claims.First(c => c.Type == "sub").Value);
 
     // POST /api/admin/login
     [HttpPost("login")]
-    public IActionResult Login([FromBody] AdminLoginRequest request)
+    public async Task<IActionResult> Login([FromBody] AdminLoginRequest request)
     {
-        if (!string.Equals(request.Email, _adminSettings.Email, StringComparison.OrdinalIgnoreCase) ||
-            request.Password != _adminSettings.Password)
+        var admin = await _db.Admins.FirstOrDefaultAsync(a => a.Email == request.Email);
+        if (admin is null || !_passwordHasher.Verify(admin.PasswordHash, request.Password))
         {
             return Ok(new ErrorResponse { Message = "Invalid credentials" });
         }
 
-        var token = _jwtService.GenerateToken("admin", _adminSettings.Email, AuthConstants.AdminRole);
+        var token = _jwtService.GenerateToken(admin.Id.ToString(), admin.Email, AuthConstants.AdminRole);
         return Ok(new { success = true, token });
     }
 
