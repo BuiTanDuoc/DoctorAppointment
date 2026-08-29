@@ -1,11 +1,18 @@
-import React, { useContext } from 'react'
+import React, { useContext, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AppContext } from '../context/AppContext'
 const TopDoctors = () => {
 
     const navigate = useNavigate()
 
-    const { doctors } = useContext(AppContext)
+    const { doctors, getDoctosData } = useContext(AppContext)
+
+    // Same reasoning as Doctors.jsx - AppContextProvider's fetch only runs once
+    // on first load, so refetch whenever this section mounts (e.g. navigating
+    // back to Home) to reflect doctors added/edited in the admin panel.
+    useEffect(() => {
+        getDoctosData()
+    }, [])
 
     return (
         <div className='flex flex-col items-center gap-4 my-16 text-[#262626] md:mx-10'>

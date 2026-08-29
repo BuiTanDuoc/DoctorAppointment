@@ -10,7 +10,7 @@ const Doctors = () => {
   const [showFilter, setShowFilter] = useState(false)
   const navigate = useNavigate();
 
-  const { doctors } = useContext(AppContext)
+  const { doctors, getDoctosData } = useContext(AppContext)
 
   const applyFilter = () => {
     if (speciality) {
@@ -19,6 +19,14 @@ const Doctors = () => {
       setFilterDoc(doctors)
     }
   }
+
+  // AppContextProvider only fetches doctors once, on the very first app load -
+  // it doesn't remount on client-side navigation. Refetch here too so visiting
+  // this page always shows doctors added/edited in the admin panel, without
+  // needing a full page refresh.
+  useEffect(() => {
+    getDoctosData()
+  }, [])
 
   useEffect(() => {
     applyFilter()
