@@ -1,5 +1,5 @@
 import axios from "axios";
-import { createContext, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
 
@@ -14,6 +14,31 @@ const AdminContextProvider = (props) => {
     const [appointments, setAppointments] = useState([])
     const [doctors, setDoctors] = useState([])
     const [dashData, setDashData] = useState(false)
+
+    // If the aToken is invalid/expired, any admin-authenticated request comes
+    // back 401. Catch it in one place instead of every function: clear the
+    // token so App.jsx's `aToken ? <Dashboard/> : <Login/>` falls back to the
+    // login screen automatically, and resolve with a "not successful" shape so
+    // the calling function's existing `if (data.success) ... else toast.error(...)`
+    // shows exactly one friendly message instead of a raw network error.
+    useEffect(() => {
+        const interceptorId = axios.interceptors.response.use(
+            (response) => response,
+            (error) => {
+                const isAdminRequest = Boolean(error.config?.headers?.aToken)
+                if (isAdminRequest && error.response?.status === 401) {
+                    localStorage.removeItem('aToken')
+                    setAToken('')
+                    return Promise.resolve({
+                        data: { success: false, message: 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại' }
+                    })
+                }
+                return Promise.reject(error)
+            }
+        )
+
+        return () => axios.interceptors.response.eject(interceptorId)
+    }, [])
 
     // Getting all Doctors data from Database using API
     const getAllDoctors = async () => {

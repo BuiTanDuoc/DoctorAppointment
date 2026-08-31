@@ -1,4 +1,4 @@
-import { createContext, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 import axios from 'axios'
 import { toast } from 'react-toastify'
 
@@ -13,6 +13,27 @@ const DoctorContextProvider = (props) => {
     const [appointments, setAppointments] = useState([])
     const [dashData, setDashData] = useState(false)
     const [profileData, setProfileData] = useState(false)
+
+    // Same reasoning as AdminContext's interceptor, just for the doctor's own
+    // dToken - an expired/invalid one logs the doctor out to the login screen.
+    useEffect(() => {
+        const interceptorId = axios.interceptors.response.use(
+            (response) => response,
+            (error) => {
+                const isDoctorRequest = Boolean(error.config?.headers?.dToken)
+                if (isDoctorRequest && error.response?.status === 401) {
+                    localStorage.removeItem('dToken')
+                    setDToken('')
+                    return Promise.resolve({
+                        data: { success: false, message: 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại' }
+                    })
+                }
+                return Promise.reject(error)
+            }
+        )
+
+        return () => axios.interceptors.response.eject(interceptorId)
+    }, [])
 
     // Getting Doctor appointment data from Database using API
     const getAppointments = async () => {
